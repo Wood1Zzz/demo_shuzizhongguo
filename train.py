@@ -142,7 +142,7 @@ def main():
                 best_epoch = epoch + 1
                 best_fold = fold + 1
                 counter = 0
-                torch.save(model.state_dict(), f'deeplab_best_model_{best_fold}_{best_epoch}.pth')
+                torch.save(model.state_dict(), f'deeplab_best_model.pth')
             else:
                 counter += 1
                 print(f"EarlyStopping counter: {counter}/{patience}")
