@@ -7,6 +7,7 @@
 from PIL import Image
 import numpy as np
 import os
+import config
 
 def create_black_image(input_image_path, output_image_path):
     for img_name in os.listdir(input_image_path):
@@ -23,9 +24,8 @@ def create_black_image(input_image_path, output_image_path):
     print("黑色图像已创建并保存到:", output_image_path)
 
 if __name__ == "__main__":
-    color_image_path = "/Users/wudezheng/code/demo_shuzizhongguo/ForgeryAnalysis_Stage_1_Train/White/Image"  # 替换为你的图像路径
-    black_image_path = "/Users/wudezheng/code/demo_shuzizhongguo/ForgeryAnalysis_Stage_1_Train/White/Mask"  # 替换为你想保存黑色图像的路径
-    
+    color_image_path = config.DATASET_PATH + "/White/Image"
+    black_image_path = config.DATASET_PATH + "/White/Mask"
     if not os.path.exists(black_image_path):
         os.makedirs(black_image_path)
     

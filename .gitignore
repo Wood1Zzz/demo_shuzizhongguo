@@ -1,4 +1,4 @@
-__pychache__
+__pycache__
 .vscode
 ForgeryAnalysis_Stage_1_Test
 ForgeryAnalysis_Stage_1_Train
@@ -6,3 +6,4 @@ ForgeryDataset.csv
 *_fold.csv
 temp
 inference_results
+*.pth

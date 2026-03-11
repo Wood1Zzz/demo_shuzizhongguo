@@ -64,7 +64,7 @@ if __name__ == "__main__":
         A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
         ToTensorV2()
     ])
-    csv_path = '/Users/wudezheng/code/demo_shuzizhongguo/ForgeryDataset.csv'
+    csv_path = './ForgeryDataset.csv'
     dataset = ForgeryDataset(csv_path, transforms=train_transform)
     for img, mask, label in dataset:
         print(img.size, mask.size, label)

@@ -22,7 +22,7 @@ import torch.nn.functional as F
 
 
 def main():
-    df = pd.read_csv(config.CSV_PATH)
+    df = pd.read_csv('./ForgeryDataset.csv')
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
 
     train_transform = A.Compose([
@@ -43,6 +43,7 @@ def main():
     ], is_check_shapes=False)
 
     best_iou = 0.0
+    best_fold = 0
     for fold, (train_index, val_index) in enumerate(kf.split(df)):
         print(f"--- Fold {fold+1} ---")
         train_df = df.iloc[train_index]
@@ -58,10 +59,8 @@ def main():
         train_dataloader = DataLoader(train_dataset, batch_size=config.BATCH_SIZE, shuffle=True)
         val_dataloader = DataLoader(val_dataset, batch_size=config.BATCH_SIZE, shuffle=False)
 
-
-
-        train_dataset = ForgeryDataset(config.CSV_PATH, transforms=train_transform)
-        train_dataloader = DataLoader(train_dataset, batch_size=config.BATCH_SIZE, shuffle=True)
+        # train_dataset = ForgeryDataset('./ForgeryDataset.csv', transforms=train_transform)
+        # train_dataloader = DataLoader(train_dataset, batch_size=config.BATCH_SIZE, shuffle=True)
     
         # plt.subplot(1, 2, 1)
         # img, mask, label = next(iter(dataloader))
@@ -92,6 +91,7 @@ def main():
 
         # TRAINING LOOP (With IoU Display) ---
         print(f"--- STARTING TRAINING (DeepLabV3 + IoU Tracking) ---")
+        best_epoch = 1
         for epoch in range(config.EPOCHS):
             model.train()
             epoch_loss = 0.0
@@ -139,9 +139,10 @@ def main():
 
             if avg_val_iou > best_iou:
                 best_iou = avg_val_iou
+                best_epoch = epoch + 1
+                best_fold = fold + 1
                 counter = 0
-                torch.save(model.state_dict(), f'deeplab_best_model.pth')
-                print(f"✅ New Best Model Saved with Val IoU: {best_iou:.4f}")
+                torch.save(model.state_dict(), f'deeplab_best_model_{best_fold}_{best_epoch}.pth')
             else:
                 counter += 1
                 print(f"EarlyStopping counter: {counter}/{patience}")
@@ -150,6 +151,9 @@ def main():
                     break
 
     print("Training Completed!")
+    print(f"Best Validation IoU: {best_iou:.4f}")
+    print(f"✅ New Best Model Saved with Val IoU: {best_iou:.4f}")
+    print(f"📌 Best Model is from Fold {best_fold}, Epoch {best_epoch}")
 
     save_count = 0
     with torch.no_grad():
@@ -186,61 +190,9 @@ def main():
             avg_val_loss = val_loss / len(val_dataloader)
             avg_val_iou = val_iou / len(val_dataloader)
     
-    test_dir = "/home/danzer/Documents/code/demo_shuzizhongguo/ForgeryAnalysis_Stage_1_Test/Image"
-    output_dir = "/home/danzer/Documents/code/demo_shuzizhongguo/inference_results"
-    infer_and_save(model, test_dir, output_dir, 'deeplab_best_model.pth', val_transform)
-
-def infer_and_save(model, test_dir, output_dir, pth, transform):
-    """
-    对测试目录中的图片进行推理，并保存预测结果。
-
-    Args:
-        model: 训练好的模型。
-        test_dir: 测试图片所在目录。
-        output_dir: 推理结果保存目录。
-        transform: 测试图片的预处理变换。
-    """
-    os.makedirs(output_dir, exist_ok=True)  # 确保输出目录存在
-    
-    state_dict = torch.load(pth)
-    # 将参数载入模型
-    model.load_state_dict(state_dict)
-    model = model.to(config.DEVICE)  # 确保模型在正确的设备上
-    model.eval()  # 设置模型为评估模式
-    to_pil = transforms.ToPILImage()
-
-    # 获取所有图片路径
-    image_paths = glob.glob(os.path.join(test_dir, "*.png")) + glob.glob(os.path.join(test_dir, "*.jpg"))
-
-    with torch.no_grad():
-        for idx, image_path in enumerate(image_paths):
-            # 加载图片
-            image = Image.open(image_path).convert("RGB")
-            h, w = image.size
-            transformed = transform(image=np.array(image))
-            image_tensor = transformed["image"].unsqueeze(0).to(config.DEVICE)
-
-            # 推理尺寸与输入一致
-            # output = model(image_tensor)['out']
-            # pred_mask = (torch.sigmoid(output[0]) > 0.5).float().cpu()
-            # pred_mask = F.interpolate(pred_mask.unsqueeze(0), size=(w, h), mode='nearest').squeeze(0)
-            # 推理尺寸与输入不一致
-            output = model(image_tensor)['out']
-            pred_mask = (torch.sigmoid(output[0])).float().cpu()
-            pred_mask = (pred_mask > 0.5).float()  # 二值化掩码
-            
-            
-
-            # 转换为PIL图像
-            pred_mask_pil = to_pil(pred_mask.squeeze(0))  # 修复：移除多余的维度
-            image_name = os.path.basename(image_path)
-
-            # 保存原始图片和预测掩码
-            image.save(os.path.join(output_dir, f"{image_name}_original.png"))
-            pred_mask_pil.save(os.path.join(output_dir, f"{image_name}_pred_mask.png"))
-
-            print(f"✅ 推理完成并保存: {image_name}")
-
+    # test_dir = "./ForgeryAnalysis_Stage_1_Test/Image"
+    # output_dir = "./inference_results"
+    # infer_and_save(model, test_dir, output_dir, 'deeplab_best_model.pth', val_transform)
 
 if __name__ == "__main__":
     main()

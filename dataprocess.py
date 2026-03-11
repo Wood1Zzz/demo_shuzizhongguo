@@ -34,5 +34,5 @@ def create_csv(file_path):
     print("CSV文件已创建并保存到当前目录:", csv_filename)
 
 if __name__ == "__main__":
-    dataset_path = config.CSV_PATH
+    dataset_path = config.DATASET_PATH
     create_csv(dataset_path)
