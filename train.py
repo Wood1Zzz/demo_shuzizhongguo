@@ -18,6 +18,7 @@ import pandas as pd
 import glob
 import numpy as np
 import torch.nn.functional as F
+from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR, CosineAnnealingLR
 
 
 
@@ -58,16 +59,6 @@ def main():
 
         train_dataloader = DataLoader(train_dataset, batch_size=config.BATCH_SIZE, shuffle=True)
         val_dataloader = DataLoader(val_dataset, batch_size=config.BATCH_SIZE, shuffle=False)
-
-        # train_dataset = ForgeryDataset('./ForgeryDataset.csv', transforms=train_transform)
-        # train_dataloader = DataLoader(train_dataset, batch_size=config.BATCH_SIZE, shuffle=True)
-    
-        # plt.subplot(1, 2, 1)
-        # img, mask, label = next(iter(dataloader))
-        # plt.imshow(transforms.ToPILImage()(img[0]))
-        # plt.subplot(1, 2, 2)
-        # plt.imshow(transforms.ToPILImage()(mask[0].squeeze(0)))
-        # plt.show()
         
         if fold == 0:  # 仅在第一个fold加载预训练权重，后续fold继续训练
             try:
@@ -76,15 +67,14 @@ def main():
                 print("✅ Loaded ImageNet Weights!")
             except:
                 model = deeplabv3_resnet50(weights=None)
-        # else:
-            # model = deeplabv3_resnet50(weights='./deeplab_best_model.pth')
-        
+
         print("✅ Using device:", config.DEVICE)
         model.classifier[4] = nn.Conv2d(256, 1, kernel_size=(1, 1), stride=(1, 1))
         model.aux_classifier[4] = nn.Conv2d(256, 1, kernel_size=(1, 1), stride=(1, 1))
 
         model = model.to(config.DEVICE)
         optimizer = optim.AdamW(model.parameters(), lr=config.LEARNING_RATE)
+        scheduler = CosineAnnealingLR(optimizer, T_max=config.EPOCHS)
 
         patience = 5  # 容忍5个epoch
         counter = 0
@@ -136,6 +126,9 @@ def main():
                     avg_val_iou = val_iou / len(val_dataloader)
 
             print(f"Epoch [{epoch+1}/{config.EPOCHS}] - Train Loss: {avg_train_loss:.4f}, Train IoU: {avg_train_iou:.4f}, Val Loss: {avg_val_loss:.4f}, Val IoU: {avg_val_iou:.4f}")
+
+            # Update learning rate
+            scheduler.step()
 
             if avg_val_iou > best_iou:
                 best_iou = avg_val_iou
@@ -190,21 +183,7 @@ def main():
             avg_val_loss = val_loss / len(val_dataloader)
             avg_val_iou = val_iou / len(val_dataloader)
     
-    # test_dir = "./ForgeryAnalysis_Stage_1_Test/Image"
-    # output_dir = "./inference_results"
-    # infer_and_save(model, test_dir, output_dir, 'deeplab_best_model.pth', val_transform)
 
+    
 if __name__ == "__main__":
     main()
-    # model = deeplabv3_resnet50(weights='DEFAULT')
-    # model.classifier[4] = nn.Conv2d(256, 1, kernel_size=(1, 1), stride=(1, 1))
-    # model.aux_classifier[4] = nn.Conv2d(256, 1, kernel_size=(1, 1), stride=(1, 1))
-    # model = model.to(config.DEVICE)
-    # test_dir = "/home/danzer/Documents/code/demo_shuzizhongguo/ForgeryAnalysis_Stage_1_Test/Image"
-    # output_dir = "/home/danzer/Documents/code/demo_shuzizhongguo/inference_results"
-    # val_transform = A.Compose([
-    #         A.Resize(config.IMG_SIZE, config.IMG_SIZE),
-    #         A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
-    #         ToTensorV2()
-    #     ], is_check_shapes=False)
-    # infer_and_save(model, test_dir, output_dir, 'deeplab_best_model.pth', val_transform)
