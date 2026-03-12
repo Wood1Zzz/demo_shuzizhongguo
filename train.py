@@ -69,8 +69,21 @@ def main():
                 model = deeplabv3_resnet50(weights=None)
 
         print("✅ Using device:", config.DEVICE)
-        model.classifier[4] = nn.Conv2d(256, 1, kernel_size=(1, 1), stride=(1, 1))
-        model.aux_classifier[4] = nn.Conv2d(256, 1, kernel_size=(1, 1), stride=(1, 1))
+        # model.classifier[4] = nn.Conv2d(256, 1, kernel_size=(1, 1), stride=(1, 1))
+        # model.aux_classifier[4] = nn.Conv2d(256, 1, kernel_size=(1, 1), stride=(1, 1))
+        model.classifier[4] = nn.Sequential(
+            nn.Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1)),
+            nn.ReLU(),
+            nn.Dropout(p=0.5),  # 加入 Dropout
+            nn.Conv2d(256, 1, kernel_size=(1, 1), stride=(1, 1))
+        )
+
+        model.aux_classifier[4] = nn.Sequential(
+            nn.Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1)),
+            nn.ReLU(),
+            nn.Dropout(p=0.5),  # 加入 Dropout
+            nn.Conv2d(256, 1, kernel_size=(1, 1), stride=(1, 1))
+        )
 
         model = model.to(config.DEVICE)
         optimizer = optim.AdamW(model.parameters(), lr=config.LEARNING_RATE)
