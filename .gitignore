@@ -8,3 +8,4 @@ temp
 inference_results
 *.pth
 *.out
+*.zip

@@ -10,6 +10,7 @@ import glob
 from PIL import Image
 from torchvision import transforms
 import numpy as np
+import torch.nn.functional as F
 
 
 
@@ -43,17 +44,16 @@ def infer_and_save(model, test_dir, output_dir, pth, transform):
             transformed = transform(image=np.array(image))
             image_tensor = transformed["image"].unsqueeze(0).to(config.DEVICE)
 
-            # 推理尺寸与输入一致
-            # output = model(image_tensor)['out']
-            # pred_mask = (torch.sigmoid(output[0]) > 0.5).float().cpu()
-            # pred_mask = F.interpolate(pred_mask.unsqueeze(0), size=(w, h), mode='nearest').squeeze(0)
-            # 推理尺寸与输入不一致
+            # # 推理尺寸与输入一致
             output = model(image_tensor)['out']
-            pred_mask = (torch.sigmoid(output[0])).float().cpu()
-            pred_mask = (pred_mask > 0.5).float()  # 二值化掩码
+            pred_mask = (torch.sigmoid(output[0]) > 0.5).float().cpu()
+            pred_mask = F.interpolate(pred_mask.unsqueeze(0), size=(w, h), mode='nearest').squeeze(0)
             
+            # # 推理尺寸与输入不一致
+            # output = model(image_tensor)['out']
+            # pred_mask = (torch.sigmoid(output[0])).float().cpu()
+            # pred_mask = (pred_mask > 0.5).float()  # 二值化掩码
             
-
             # 转换为PIL图像
             pred_mask_pil = to_pil(pred_mask.squeeze(0))  # 修复：移除多余的维度
             image_name = os.path.basename(image_path)
@@ -70,8 +70,21 @@ if __name__ == "__main__":
     model.classifier[4] = nn.Conv2d(256, 1, kernel_size=(1, 1), stride=(1, 1))
     model.aux_classifier[4] = nn.Conv2d(256, 1, kernel_size=(1, 1), stride=(1, 1))
     model = model.to(config.DEVICE)
-    test_dir = "/home/danzer/Documents/code/demo_shuzizhongguo/ForgeryAnalysis_Stage_1_Test/Image"
-    output_dir = "/home/danzer/Documents/code/demo_shuzizhongguo/inference_results"
+    model.classifier[4] = nn.Sequential(
+        nn.Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1)),
+        nn.ReLU(),
+        nn.Dropout(p=0.5),  # 加入 Dropout
+        nn.Conv2d(256, 1, kernel_size=(1, 1), stride=(1, 1))
+    )
+
+    model.aux_classifier[4] = nn.Sequential(
+        nn.Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1)),
+        nn.ReLU(),
+        nn.Dropout(p=0.5),  # 加入 Dropout
+        nn.Conv2d(256, 1, kernel_size=(1, 1), stride=(1, 1))
+    )
+    test_dir = "/root/autodl-tmp/demo_shuzizhongguo/ForgeryAnalysis_Stage_1_Test/Image"
+    output_dir = "/root/autodl-tmp/demo_shuzizhongguo/inference_results"
     val_transform = A.Compose([
             A.Resize(config.IMG_SIZE, config.IMG_SIZE),
             A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),

@@ -48,8 +48,7 @@ def main():
     model = deeplabv3_resnet50(weights='DEFAULT')
     print("✅ Loaded ImageNet Weights!")
     print("✅ Using device:", config.DEVICE)
-    # model.classifier[4] = nn.Conv2d(256, 1, kernel_size=(1, 1), stride=(1, 1))
-    # model.aux_classifier[4] = nn.Conv2d(256, 1, kernel_size=(1, 1), stride=(1, 1))
+    
     model.classifier[4] = nn.Sequential(
         nn.Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1)),
         nn.ReLU(),
