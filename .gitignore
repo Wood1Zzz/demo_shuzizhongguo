@@ -9,3 +9,4 @@ inference_results
 *.pth
 *.out
 *.zip
+inference_results_overlay

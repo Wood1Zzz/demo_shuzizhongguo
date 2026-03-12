@@ -62,6 +62,20 @@ def infer_and_save(model, test_dir, output_dir, pth, transform):
             image.save(os.path.join(output_dir, f"{image_name}_original.png"))
             pred_mask_pil.save(os.path.join(output_dir, f"{image_name}_pred_mask.png"))
 
+            # mask覆盖到原图（红色区域）
+            image_np = np.array(image)
+            mask_np = np.array(pred_mask_pil)
+            mask_color = np.zeros_like(image_np)
+            mask_color[..., 0] = mask_np  # 红色通道
+            mask_color[..., 1] = 0
+            mask_color[..., 2] = 0
+
+            alpha = 0.4  # 透明度
+            overlay = image_np * (1 - alpha) + mask_color * alpha
+            overlay = overlay.astype(np.uint8)
+            overlay_img = Image.fromarray(overlay)
+            overlay_img.save(os.path.join(output_dir, f"{image_name}_overlay.png"))
+
             print(f"✅ 推理完成并保存: {image_name}")
 
 
@@ -84,7 +98,7 @@ if __name__ == "__main__":
         nn.Conv2d(256, 1, kernel_size=(1, 1), stride=(1, 1))
     )
     test_dir = "/root/autodl-tmp/demo_shuzizhongguo/ForgeryAnalysis_Stage_1_Test/Image"
-    output_dir = "/root/autodl-tmp/demo_shuzizhongguo/inference_results"
+    output_dir = "/root/autodl-tmp/demo_shuzizhongguo/inference_results_overlay"
     val_transform = A.Compose([
             A.Resize(config.IMG_SIZE, config.IMG_SIZE),
             A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
