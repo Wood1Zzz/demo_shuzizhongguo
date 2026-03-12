@@ -43,6 +43,31 @@ def main():
         ToTensorV2()
     ], is_check_shapes=False)
 
+    # 加载模型、优化器和学习率调度器
+    print("Loading DeepLabV3 with ImageNet Weights...")
+    model = deeplabv3_resnet50(weights='DEFAULT')
+    print("✅ Loaded ImageNet Weights!")
+    print("✅ Using device:", config.DEVICE)
+    # model.classifier[4] = nn.Conv2d(256, 1, kernel_size=(1, 1), stride=(1, 1))
+    # model.aux_classifier[4] = nn.Conv2d(256, 1, kernel_size=(1, 1), stride=(1, 1))
+    model.classifier[4] = nn.Sequential(
+        nn.Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1)),
+        nn.ReLU(),
+        nn.Dropout(p=0.5),  # 加入 Dropout
+        nn.Conv2d(256, 1, kernel_size=(1, 1), stride=(1, 1))
+    )
+
+    model.aux_classifier[4] = nn.Sequential(
+        nn.Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1)),
+        nn.ReLU(),
+        nn.Dropout(p=0.5),  # 加入 Dropout
+        nn.Conv2d(256, 1, kernel_size=(1, 1), stride=(1, 1))
+    )
+
+    model = model.to(config.DEVICE)
+    optimizer = optim.AdamW(model.parameters(), lr=config.LEARNING_RATE)
+    scheduler = CosineAnnealingLR(optimizer, T_max=config.EPOCHS)
+
     best_iou = 0.0
     best_fold = 0
     for fold, (train_index, val_index) in enumerate(kf.split(df)):
@@ -60,35 +85,6 @@ def main():
         train_dataloader = DataLoader(train_dataset, batch_size=config.BATCH_SIZE, shuffle=True)
         val_dataloader = DataLoader(val_dataset, batch_size=config.BATCH_SIZE, shuffle=False)
         
-        if fold == 0:  # 仅在第一个fold加载预训练权重，后续fold继续训练
-            try:
-                print("Loading DeepLabV3 with ImageNet Weights...")
-                model = deeplabv3_resnet50(weights='DEFAULT')
-                print("✅ Loaded ImageNet Weights!")
-            except:
-                model = deeplabv3_resnet50(weights=None)
-
-        print("✅ Using device:", config.DEVICE)
-        # model.classifier[4] = nn.Conv2d(256, 1, kernel_size=(1, 1), stride=(1, 1))
-        # model.aux_classifier[4] = nn.Conv2d(256, 1, kernel_size=(1, 1), stride=(1, 1))
-        model.classifier[4] = nn.Sequential(
-            nn.Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1)),
-            nn.ReLU(),
-            nn.Dropout(p=0.5),  # 加入 Dropout
-            nn.Conv2d(256, 1, kernel_size=(1, 1), stride=(1, 1))
-        )
-
-        model.aux_classifier[4] = nn.Sequential(
-            nn.Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1)),
-            nn.ReLU(),
-            nn.Dropout(p=0.5),  # 加入 Dropout
-            nn.Conv2d(256, 1, kernel_size=(1, 1), stride=(1, 1))
-        )
-
-        model = model.to(config.DEVICE)
-        optimizer = optim.AdamW(model.parameters(), lr=config.LEARNING_RATE)
-        scheduler = CosineAnnealingLR(optimizer, T_max=config.EPOCHS)
-
         patience = 5  # 容忍5个epoch
         counter = 0
 

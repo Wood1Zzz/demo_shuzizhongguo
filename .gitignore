@@ -7,4 +7,4 @@ ForgeryDataset.csv
 temp
 inference_results
 *.pth
-./nohup.out
+*.out
