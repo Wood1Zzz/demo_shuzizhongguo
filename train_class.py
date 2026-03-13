@@ -10,6 +10,7 @@ from sklearn.model_selection import KFold
 import os
 import numpy as np
 import tqdm
+import torchvision
 
 
 
@@ -40,7 +41,7 @@ class ForgeryClassDataset(Dataset):
 
     def __getitem__(self, idx):
         img = Image.open(self.image_paths[idx]).convert('RGB')
-        label = self.labels[idx]
+        label = torch.tensor(self.labels[idx], dtype=torch.int32)
         if self.transforms:
             image = self.transforms(img)
         else:
@@ -72,7 +73,8 @@ class FocalLoss(nn.Module):
 class ForgeryClassifier(nn.Module):
     def __init__(self):
         super(ForgeryClassifier, self).__init__()
-        self.model = timm.create_model('resnet50', pretrained=True)
+        # self.model = timm.create_model('resnet50', pretrained=False)
+        self.model = torchvision.models.resnet50(pretrained=True)
         # 替换最后一层为输出1个logit
         self.model.fc = nn.Linear(self.model.fc.in_features, 1)
 
@@ -145,14 +147,23 @@ def main():
             # 验证阶段
             model.eval()
             val_loss = 0
+            all_preds = []
+            all_labels = []
             with torch.no_grad():
                 for images, labels in val_loader:
                     images, labels = images.to(DEVICE), labels.to(DEVICE)
                     outputs = model(images)
                     loss = criterion(outputs.squeeze(), labels.float())
                     val_loss += loss.item()
+                    preds = (outputs > 0.5).int().cpu()
+                    all_preds.append(preds)
+                    all_labels.append(labels.int().cpu())
             avg_val_loss = val_loss / len(val_loader)
+            all_preds = torch.cat(all_preds)
+            all_labels = torch.cat(all_labels)
+            accuracy = (all_preds.squeeze() == all_labels).float().mean().item()
             print(f'Epoch {epoch+1}, Val Loss: {avg_val_loss:.4f}')
+            print(f'Epoch {epoch+1}, Val Accuracy: {accuracy:.4f}')
             scheduler.step()
             # Early Stopping Logic
             if avg_val_loss < min_loss:
