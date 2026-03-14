@@ -7,4 +7,4 @@ DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 EPOCHS = 15
 LEARNING_RATE = 1e-4
 IMG_SIZE = 512
-MODEL_PTH = 'deeplab_best_model.pth'
+MODEL_PTH = 'deeplab_seg_best_model.pth'

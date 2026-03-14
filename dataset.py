@@ -45,6 +45,80 @@ class ForgeryDataset(Dataset):
         # print(f"Image shape: {image.shape}, Mask shape: {mask.shape}")
         return image, mask, label
 
+class ForgerySegDataset(Dataset):
+    def __init__(self, csv_path
+                 , transforms=None):
+        self.csv_path = csv_path
+        self.transforms = transforms
+
+        # 从CSV文件中读取数据
+        self.image_paths = []
+        self.labels = []
+        self.masks = []
+        with open(csv_path, mode='r') as file:
+            lines = file.readlines()
+            for line in lines[1:]:  # 跳过标题行
+                parts = line.strip().split(',')
+                self.image_paths.append(parts[0])
+                self.labels.append(int(parts[1]))
+                self.masks.append(parts[2])
+        
+    def __len__(self):
+        return len(self.image_paths)
+
+    def __getitem__(self, idx):
+        img = cv2.imread(self.image_paths[idx])
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        mask = cv2.imread(self.masks[idx], cv2.IMREAD_GRAYSCALE)
+        label = self.labels[idx]
+        if self.transforms:
+            augmented = self.transforms(image=img, mask=mask)
+            image = augmented['image']
+            mask = augmented['mask'].unsqueeze(0) / 255.0 
+
+        else:
+            image = transforms.ToTensor()(img)
+            mask = transforms.ToTensor()(mask).unsqueeze(0) / 255.0  # 去掉通道维度
+        # print(f"Image shape: {image.shape}, Mask shape: {mask.shape}")
+        return image, mask, label
+
+
+
+class ForgerySegDataset(Dataset):
+    def __init__(self, csv_path
+                 , transforms=None):
+        self.csv_path = csv_path
+        self.transforms = transforms
+
+        # 从CSV文件中读取数据
+        self.image_paths = []
+        self.masks = []
+        with open(csv_path, mode='r') as file:
+            lines = file.readlines()
+            for line in lines[1:]:  # 跳过标题行
+                parts = line.strip().split(',')
+                self.image_paths.append(parts[0])
+                self.masks.append(parts[1])
+        
+    def __len__(self):
+        return len(self.image_paths)
+
+    def __getitem__(self, idx):
+        img = cv2.imread(self.image_paths[idx])
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        mask = cv2.imread(self.masks[idx], cv2.IMREAD_GRAYSCALE)
+        if self.transforms:
+            augmented = self.transforms(image=img, mask=mask)
+            image = augmented['image']
+            mask = augmented['mask'].unsqueeze(0) / 255.0 
+
+        else:
+            image = transforms.ToTensor()(img)
+            mask = transforms.ToTensor()(mask).unsqueeze(0) / 255.0  # 去掉通道维度
+        # print(f"Image shape: {image.shape}, Mask shape: {mask.shape}")
+        return image, mask
+
+
 
 if __name__ == "__main__":
 

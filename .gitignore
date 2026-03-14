@@ -10,3 +10,4 @@ inference_results
 *.out
 *.zip
 inference_results_overlay
+*.csv

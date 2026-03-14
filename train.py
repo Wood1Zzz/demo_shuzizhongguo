@@ -5,7 +5,7 @@ import torchvision.transforms as transforms
 import os
 from PIL import Image
 import csv
-from dataset import ForgeryDataset
+from dataset import ForgeryDataset, ForgerySegDataset
 from model import deeplabv3_resnet50
 import config
 import matplotlib.pyplot as plt
@@ -23,7 +23,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR, CosineAnnealingL
 
 
 def main():
-    df = pd.read_csv('./ForgeryDataset.csv')
+    df = pd.read_csv('./ForgerySegDataset.csv')
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
 
     train_transform = A.Compose([
@@ -78,8 +78,8 @@ def main():
         train_df.to_csv(f'train_fold.csv', index=False)
         val_df.to_csv(f'val_fold.csv', index=False)
 
-        train_dataset = ForgeryDataset('train_fold.csv', transforms=train_transform)
-        val_dataset = ForgeryDataset('val_fold.csv', transforms=val_transform)
+        train_dataset = ForgerySegDataset('train_fold.csv', transforms=train_transform)
+        val_dataset = ForgerySegDataset('val_fold.csv', transforms=val_transform)
 
         train_dataloader = DataLoader(train_dataset, batch_size=config.BATCH_SIZE, shuffle=True)
         val_dataloader = DataLoader(val_dataset, batch_size=config.BATCH_SIZE, shuffle=False)
@@ -97,7 +97,7 @@ def main():
 
             loop = tqdm(train_dataloader, desc=f"Epoch {epoch+1}/{config.EPOCHS}")
 
-            for images, masks, label in loop:
+            for images, masks in loop:
                 images, masks = images.to(config.DEVICE), masks.to(config.DEVICE)
                 optimizer.zero_grad()
                 outputs = model(images)['out']
@@ -123,7 +123,7 @@ def main():
             val_loss = 0.0
             val_iou = 0.0
             with torch.no_grad():
-                for val_images, val_masks, val_labels in val_dataloader:  # Using train_dataloader for validation as well
+                for val_images, val_masks in val_dataloader:  # Using train_dataloader for validation as well
                     val_images, val_masks = val_images.to(config.DEVICE), val_masks.to(config.DEVICE)
                     val_outputs = model(val_images)['out']
                     
@@ -143,7 +143,8 @@ def main():
                 best_epoch = epoch + 1
                 best_fold = fold + 1
                 counter = 0
-                torch.save(model.state_dict(), f'deeplab_best_model.pth')
+                torch.save(model.state_dict(), f'deeplab_seg_best_model.pth')
+                print(f"✅ New Best Model Saved with Val IoU: {best_iou:.4f} at Fold {best_fold}, Epoch {best_epoch}")
             else:
                 counter += 1
                 print(f"EarlyStopping counter: {counter}/{patience}")
@@ -158,7 +159,7 @@ def main():
 
     save_count = 0
     with torch.no_grad():
-        for val_images, val_masks, val_labels in val_dataloader:
+        for val_images, val_masks in val_dataloader:
             val_images, val_masks = val_images.to(config.DEVICE), val_masks.to(config.DEVICE)
             val_outputs = model(val_images)['out']
             

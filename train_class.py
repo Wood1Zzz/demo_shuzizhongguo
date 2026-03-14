@@ -171,7 +171,7 @@ def main():
                 best_epoch = epoch + 1
                 counter = 0  # 重置计数器
                 torch.save(model.state_dict(), 'class_best_model.pth')
-                print(f"New best model saved at epoch {best_epoch} with val loss {min_loss:.4f}")
+                print(f"New best model saved at epoch {best_epoch} with val loss {avg_val_loss:.4f}")
             else:
                 counter += 1
                 print(f"No improvement. Counter: {counter}/{patience}")
@@ -179,6 +179,10 @@ def main():
                     print("Early stopping triggered.")
                     break
 
+def eval():
+    model = ForgeryClassifier().to(DEVICE)
+    model.load_state_dict(torch.load('class_best_model.pth'))
 
 if __name__ == "__main__":
-    main()
+    # main()
+    eval()
