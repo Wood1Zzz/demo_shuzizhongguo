@@ -104,4 +104,4 @@ if __name__ == "__main__":
             A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
             ToTensorV2()
         ], is_check_shapes=False)
-    infer_and_save(model, test_dir, output_dir, 'deeplab_best_model.pth', val_transform)
+    infer_and_save(model, test_dir, output_dir, 'deeplab_seg_best_model.pth', val_transform)

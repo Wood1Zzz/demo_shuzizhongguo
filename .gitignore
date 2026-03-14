@@ -11,3 +11,5 @@ inference_results
 *.zip
 inference_results_overlay
 *.csv
+predictions
+twoStageResult

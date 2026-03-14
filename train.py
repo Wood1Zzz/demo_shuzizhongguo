@@ -32,6 +32,8 @@ def main():
     A.RandomRotate90(p=0.5),  # 随机旋转
     A.VerticalFlip(p=0.5),
     A.Rotate(limit=90, p=0.5),
+    A.GaussianBlur(blur_limit=(3, 7), p=0.5),  # 随机高斯模糊
+    A.GaussNoise(var_limit=(10.0, 50.0), p=0.5),  # 随机添加高斯噪声
     A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
     A.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1, p=0.5),
     ToTensorV2()
@@ -84,7 +86,7 @@ def main():
         train_dataloader = DataLoader(train_dataset, batch_size=config.BATCH_SIZE, shuffle=True)
         val_dataloader = DataLoader(val_dataset, batch_size=config.BATCH_SIZE, shuffle=False)
         
-        patience = 5  # 容忍5个epoch
+        patience = 10  # 容忍5个epoch
         counter = 0
 
         # TRAINING LOOP (With IoU Display) ---
